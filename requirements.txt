@@ -1,2 +1,28 @@
-Django
-djangorestframework
+# Django Framework
+Django==5.1.1
+djangorestframework==3.15.2
+
+# Django Extensions
+django-cors-headers==4.4.0
+django-filter==24.3
+python-decouple==3.8
+
+# Database (PostgreSQL for production)
+psycopg2-binary==2.9.9
+
+# Production Server
+gunicorn==23.0.0
+whitenoise==6.7.0
+
+# Development & Testing
+pytest==8.3.3
+pytest-django==4.9.0
+coverage==7.6.1
+
+# Code Quality
+flake8==7.1.1
+black==24.8.0
+isort==5.13.2
+
+# API Documentation
+drf-spectacular==0.27.2
