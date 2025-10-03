@@ -1,264 +1,266 @@
-# 🚛 API Maderas del Sur S.A.
+# 🌲 API Maderas del Sur
 
-[![Django](https://img.shields.io/badge/Django-5.1.1-green.svg)](https://www.djangoproject.com/)
-[![DRF](https://img.shields.io/badge/DRF-3.15.2-red.svg)](https://www.django-rest-framework.org/)
+[![Django](https://img.shields.io/badge/Django-5.1-green.svg)](https://www.djangoproject.com/)
+[![DRF](https://img.shields.io/badge/DRF-3.15-red.svg)](https://www.django-rest-framework.org/)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 
-API RESTful profesional desarrollada con Django REST Framework para gestionar la logística de transporte de madera. Sistema completo de gestión de flota de camiones, conductores, tipos de madera, cargas y clientes.
+> **Mi primera API REST** - Desarrollada originalmente como evaluación de backend para INACAP. Este proyecto representa mi primera incursión en el desarrollo de APIs profesionales con Django REST Framework.
 
-## 🎯 Características Principales
+API RESTful pública para gestión de logística y transporte de madera en la empresa ficticia "Maderas del Sur S.A.". Actualmente optimizada para producción con Docker, rate limiting y despliegue en servidor con recursos limitados.
 
-- ✅ **CRUD completo** para todas las entidades
-- 🔐 **Autenticación por token** (JWT-ready)
-- 🔍 **Búsqueda y filtros** avanzados
-- 📊 **Endpoints de estadísticas** personalizados
-- 📄 **Paginación** automática
-- ✨ **Validaciones robustas** de negocio
-- 🎨 **API navegable** (Browsable API)
-- 📝 **Documentación completa** de endpoints
-- 🌐 **CORS** configurado
-- 🛡️ **Seguridad** mejorada para producción
+## 📖 Contexto del Proyecto
 
-## 🏗️ Arquitectura
+Este proyecto fue desarrollado como **evaluación final del módulo de backend** en INACAP, representando mi primera experiencia completa construyendo una API RESTful desde cero.
 
-```
-eva1-backend/
-├── api/                    # Aplicación principal
-│   ├── models.py          # Modelos con validaciones
-│   ├── serializers.py     # Serializers con campos explícitos
-│   ├── views.py           # ViewSets con filtros y acciones
-│   ├── admin.py           # Admin personalizado
-│   └── urls.py            # Rutas de la API
-├── drfmaderas/            # Configuración del proyecto
-│   ├── settings.py        # Settings con variables de entorno
-│   └── urls.py            # URLs principales
-├── .env                   # Variables de entorno (no versionado)
-├── .env.example           # Ejemplo de configuración
-├── requirements.txt       # Dependencias con versiones
-├── INSTALLATION.md        # Guía de instalación detallada
-├── API_DOCUMENTATION.md   # Documentación de endpoints
-└── DEPLOYMENT.md          # Guía de despliegue
-```
+**Evolución del proyecto:**
 
-## 🚀 Inicio Rápido
+- **Versión 1.0** (2024): API básica con SQLite, CRUD completo y admin de Django
+- **Versión 2.0** (2025): Refactorización completa con PostgreSQL, Docker, seguridad mejorada y optimización para producción
 
-### 1. Clonar el repositorio
+La API gestiona la logística de transporte de madera, incluyendo flota de camiones, conductores, tipos de madera, cargas y clientes.
+
+## 🗄️ Modelo de Datos
+
+La base de datos está modelada para gestionar la logística completa de transporte:
+
+1. **Conductor**: Nombre, licencia de conducir, teléfono, dirección
+2. **Camión**: Placa, modelo, capacidad de carga, conductor asignado
+3. **Tipo de Madera**: Nombre, descripción
+4. **Cliente**: Nombre de empresa, dirección, teléfono, correo
+5. **Carga**: Tipo de madera, cantidad, peso, camión, cliente
+
+Todas las entidades incluyen timestamps automáticos (`created_at`, `updated_at`).
+
+## ✨ Features
+
+- API pública de solo lectura (sin autenticación)
+- Protección contra abuso con rate limiting restrictivo
+- Cache en endpoints costosos (15 minutos)
+- Paginación limitada (máx 100 resultados)
+- Escritura solo para administradores
+- Optimizada para 512MB RAM / 1 CPU core
+
+## ⚡ Inicio Rápido
 
 ```bash
+# Clonar repositorio
 git clone https://github.com/sebitabravo/maderaapi.git
 cd eva1-backend
+
+# Levantar con Docker
+docker-compose up -d --build
+
+# API disponible en http://localhost:3002/api/
 ```
 
-### 2. Configurar entorno virtual
+## 📋 Endpoints
 
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# o
-venv\Scripts\activate  # Windows
-```
+| Recurso | Endpoint | Métodos |
+|---------|----------|---------|
+| Conductores | `/api/conductores/` | GET, POST*, PUT*, DELETE* |
+| Camiones | `/api/camiones/` | GET, POST*, PUT*, DELETE* |
+| Tipos Madera | `/api/tipos-madera/` | GET, POST*, PUT*, DELETE* |
+| Clientes | `/api/clientes/` | GET, POST*, PUT*, DELETE* |
+| Cargas | `/api/cargas/` | GET, POST*, PUT*, DELETE* |
+| Estadísticas Camión | `/api/camiones/{id}/estadisticas/` | GET |
+| Estadísticas Cliente | `/api/clientes/{id}/estadisticas/` | GET |
+| Estadísticas Generales | `/api/cargas/estadisticas_generales/` | GET |
+| Autenticación | `/api/auth/token/` | POST |
 
-### 3. Instalar dependencias
+_*Requiere autenticación y permisos de administrador_
 
-```bash
-pip install -r requirements.txt
-```
+## 🔒 Rate Limiting
 
-### 4. Configurar variables de entorno
+| Tipo | Límite | Descripción |
+|------|--------|-------------|
+| Anónimo | 30/hora | Usuarios sin autenticación |
+| Autenticado | 500/hora | Usuarios con token |
+| Burst | 10/minuto | Prevención de ráfagas (todas las IPs) |
+| Estadísticas | 5/hora | Endpoints de agregaciones |
+| Escritura | 10/hora | Operaciones POST/PUT/DELETE |
 
-```bash
-cp .env.example .env
-# Edita .env con tu configuración
-```
+### Respuesta HTTP 429
 
-### 5. Ejecutar migraciones
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-### 6. Crear superusuario
-
-```bash
-python manage.py createsuperuser
-```
-
-### 7. Iniciar servidor
-
-```bash
-python manage.py runserver
-```
-
-🎉 **API disponible en:** `http://localhost:8000/api/`
-
-## 📚 Documentación
-
-| Documento | Descripción |
-|-----------|-------------|
-| [INSTALLATION.md](INSTALLATION.md) | Guía completa de instalación |
-| [API_DOCUMENTATION.md](API_DOCUMENTATION.md) | Documentación de todos los endpoints |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | Guía de despliegue a producción |
-
-## 🔌 Endpoints Principales
-
-### Base URL: `/api/`
-
-| Recurso | Endpoint | Descripción |
-|---------|----------|-------------|
-| **Conductores** | `/api/conductores/` | CRUD de conductores |
-| **Camiones** | `/api/camiones/` | CRUD de camiones con estadísticas |
-| **Tipos de Madera** | `/api/tipos-madera/` | CRUD de tipos de madera |
-| **Clientes** | `/api/clientes/` | CRUD de clientes con estadísticas |
-| **Cargas** | `/api/cargas/` | CRUD de cargas con validaciones |
-| **Auth** | `/api/auth/token/` | Obtener token de autenticación |
-
-### Endpoints Adicionales
-
-- `GET /api/camiones/{id}/estadisticas/` - Estadísticas por camión
-- `GET /api/clientes/{id}/estadisticas/` - Estadísticas por cliente
-- `GET /api/cargas/estadisticas_generales/` - Estadísticas generales
-- `GET /api/conductores/{id}/camiones/` - Camiones por conductor
-
-## 🔐 Autenticación
-
-Obtener token:
-
-```bash
-POST /api/auth/token/
-Content-Type: application/json
-
+```json
 {
-  "username": "tu_usuario",
-  "password": "tu_password"
+  "detail": "Request was throttled. Expected available in 45 seconds."
 }
 ```
 
-Usar token en requests:
+## 🔑 Autenticación
+
+### Obtener Token
 
 ```bash
-Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
+curl -X POST http://localhost:3002/api/auth/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"password"}'
 ```
 
-## 📊 Modelos de Datos
+### Usar Token
 
-### Conductor
-- Nombre, licencia de conducir (única), teléfono, dirección
-- Validaciones: formato de teléfono, licencia mínima 5 caracteres
+```bash
+curl -H "Authorization: Token your-token-here" \
+  http://localhost:3002/api/conductores/
+```
 
-### Camión
-- Placa (única), modelo, capacidad de carga, conductor
-- Validaciones: formato de placa, capacidad > 0
-- Relación: `PROTECT` con Conductor
+## 🐳 Docker
 
-### Tipo de Madera
-- Nombre (único), descripción
+### Comandos Útiles
 
-### Cliente
-- Nombre empresa, dirección, teléfono, correo (único)
-- Validaciones: formato de teléfono y email
+```bash
+# Ver logs en tiempo real
+docker-compose logs -f
 
-### Carga
-- Tipo de madera, cantidad, peso, camión, cliente
-- Validación crítica: **peso ≤ capacidad del camión**
-- Timestamps: `created_at`, `updated_at`
+# Monitorear recursos (CPU/RAM/Disco)
+./monitor-resources.sh
+
+# Crear superusuario
+docker-compose exec web python manage.py createsuperuser
+
+# Ejecutar migraciones
+docker-compose exec web python manage.py migrate
+
+# Acceder a shell de Django
+docker-compose exec web python manage.py shell
+
+# Detener servicios
+docker-compose down
+```
+
+### Límites de Recursos
+
+```yaml
+web:
+  deploy:
+    resources:
+      limits:
+        cpus: '0.5'
+        memory: 256M
+db:
+  deploy:
+    resources:
+      limits:
+        cpus: '0.5'
+        memory: 256M
+```
+
+## 🌍 Variables de Entorno
+
+```bash
+# Django
+DEBUG=False
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=localhost,api-madera.sbravo.app
+
+# Database
+DATABASE_ENGINE=django.db.backends.postgresql
+DATABASE_NAME=maderas_db
+DATABASE_USER=maderas_user
+DATABASE_PASSWORD=your-db-password
+DATABASE_HOST=db
+DATABASE_PORT=5432
+
+# CORS
+CORS_ALLOWED_ORIGINS=https://your-frontend.com
+CSRF_TRUSTED_ORIGINS=https://your-frontend.com
+
+# Puerto
+HOST_PORT=3002
+```
 
 ## 🛠️ Tecnologías
 
-| Categoría | Tecnologías |
-|-----------|-------------|
-| **Backend** | Django 5.1.1, Django REST Framework 3.15.2 |
-| **Base de Datos** | SQLite (dev), PostgreSQL (prod) |
-| **Autenticación** | Token Authentication |
-| **Seguridad** | CORS, CSRF protection, variables de entorno |
-| **Servidor** | Gunicorn, Whitenoise |
-| **Testing** | Pytest, Coverage |
-| **Code Quality** | Black, Flake8, Isort |
+- **Backend:** Django 5.1, Django REST Framework 3.15
+- **Base de Datos:** PostgreSQL 16
+- **Server:** Gunicorn (2 workers, 2 threads)
+- **Containerización:** Docker, Docker Compose
+- **Python:** 3.12+
 
-## 🧪 Testing
+## 📊 Paginación
+
+- Tamaño por defecto: 20 resultados
+- Máximo permitido: 100 resultados
+- Uso: `?page=2&page_size=50`
+
+## 📝 Logs
+
+Los logs se rotan automáticamente:
+
+- Tamaño máximo: 10MB por archivo
+- Archivos máximos: 3 (30MB total por contenedor)
+- Ubicación: `/app/logs/throttle.log` (dentro del contenedor)
 
 ```bash
-# Ejecutar tests
-pytest
+# Ver logs de throttling
+docker-compose exec web cat /app/logs/throttle.log
 
-# Con cobertura
-coverage run -m pytest
-coverage report
+# Seguir logs en tiempo real
+docker-compose exec web tail -f /app/logs/throttle.log
 ```
 
-## 🔒 Mejoras de Seguridad Implementadas
-
-- ✅ `SECRET_KEY` en variables de entorno
-- ✅ `DEBUG=False` en producción
-- ✅ `ALLOWED_HOSTS` configurado
-- ✅ HTTPS ready (HSTS, SSL redirect)
-- ✅ CORS configurado apropiadamente
-- ✅ Validaciones robustas en modelos y serializers
-- ✅ Permisos: `IsAuthenticatedOrReadOnly`
-- ✅ Constraints de base de datos (unique, indexes)
-
-## 📈 Mejoras Implementadas vs Versión Original
-
-| Aspecto | Antes | Ahora |
-|---------|-------|-------|
-| **Nombres de clases** | minúsculas ❌ | PascalCase ✅ |
-| **SECRET_KEY** | Hardcoded ❌ | Variables de entorno ✅ |
-| **Validaciones** | Básicas | Validaciones de negocio completas ✅ |
-| **Serializers** | `fields = '__all__'` ❌ | Campos explícitos ✅ |
-| **Timestamps** | No ❌ | `created_at`, `updated_at` ✅ |
-| **Índices DB** | No ❌ | Indexes optimizados ✅ |
-| **Related names** | No ❌ | Relaciones inversas ✅ |
-| **Filtros** | No ❌ | Búsqueda y filtros avanzados ✅ |
-| **Estadísticas** | No ❌ | Endpoints de analytics ✅ |
-| **Documentación** | Básica | Completa (3 archivos MD) ✅ |
-| **Admin** | Básico | Personalizado con filtros ✅ |
-| **Seguridad** | Desarrollo | Production-ready ✅ |
-
-## 🚀 Despliegue
-
-### Docker
+## 🔧 Desarrollo Local
 
 ```bash
+# Crear entorno virtual
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# venv\Scripts\activate  # Windows
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Ejecutar migraciones
+python manage.py migrate
+
+# Crear datos de prueba
+python create_test_data.py
+
+# Iniciar servidor de desarrollo
+python manage.py runserver
+
+# API disponible en http://localhost:8000/api/
+```
+
+## 📈 Monitoreo
+
+```bash
+# Ver uso de recursos en tiempo real
+docker stats maderas_web maderas_db
+
+# Ver tamaño de volúmenes
+docker system df -v
+
+# Ver conexiones activas a la DB
+docker-compose exec db psql -U maderas_user -d maderas_db -c "SELECT count(*) FROM pg_stat_activity;"
+```
+
+## 🆘 Troubleshooting
+
+### Error de permisos en logs
+
+```bash
+docker-compose exec web ls -la /app/logs
+docker-compose restart web
+```
+
+### Reconstruir contenedores
+
+```bash
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+### Resetear base de datos
+
+```bash
+docker-compose down -v
 docker-compose up -d
 docker-compose exec web python manage.py migrate
 ```
 
-### Heroku
-
-```bash
-heroku create tu-app
-heroku addons:create heroku-postgresql
-git push heroku main
-```
-
-Ver [DEPLOYMENT.md](DEPLOYMENT.md) para guías completas de despliegue.
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea tu rama de feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add: nueva característica'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📝 Convenciones de Código
-
-- **PEP 8** para Python
-- **Black** para formateo
-- **Docstrings** en español
-- **Commits** descriptivos en español
-
-## 📞 Soporte y Contacto
-
-- **Issues**: [GitHub Issues](https://github.com/sebitabravo/maderaapi/issues)
-- **Documentación**: Ver archivos MD en el repositorio
-- **Admin Panel**: `http://localhost:8000/admin/`
-
-## 📄 Licencia
-
-Este proyecto fue desarrollado como parte de una evaluación de backend para la Universidad Tecnológica de Chile INACAP.
-
 ---
 
-**Desarrollado con ❤️ para Maderas del Sur S.A.**
+**Desarrollado por [Sebastián Bravo](https://github.com/sebitabravo)**
