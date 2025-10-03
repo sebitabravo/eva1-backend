@@ -13,4 +13,5 @@ router.register(r'cargas', views.CargaViewSet, basename='carga')
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/token/', obtain_auth_token, name='api_token_auth'),
+    path('health/', views.health_check, name='health_check'),
 ]

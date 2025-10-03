@@ -1,11 +1,13 @@
 from rest_framework import viewsets, filters, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Count
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 
 from .models import Conductor, Camion, TipoMadera, Cliente, Carga
 from .serializer import (
@@ -19,6 +21,12 @@ from .serializer import (
 )
 from .permissions import IsAdminOrReadOnly
 from .pagination import StandardResultsSetPagination
+
+
+@csrf_exempt
+def health_check(request):
+    """Endpoint de health check para contenedor - no requiere autenticación ni validación de host"""
+    return JsonResponse({'status': 'healthy'}, status=200)
 
 
 class StatsThrottle(UserRateThrottle):
