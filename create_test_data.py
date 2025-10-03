@@ -17,16 +17,24 @@ from api.models import Conductor, Camion, TipoMadera, Cliente, Carga
 fake = Faker('es_ES') # Usar localización en español
 
 def crear_superusuario():
-    """Crea un superusuario si no existe"""
-    if not User.objects.filter(username='admin').exists():
+    """Crea un superusuario si no existe usando variables de entorno"""
+    username = os.getenv('DJANGO_SUPERUSER_USERNAME')
+    email = os.getenv('DJANGO_SUPERUSER_EMAIL')
+    password = os.getenv('DJANGO_SUPERUSER_PASSWORD')
+
+    if not all([username, email, password]):
+        print("⚠️  Variables de entorno de superusuario no configuradas. Saltando creación.")
+        return
+
+    if not User.objects.filter(username=username).exists():
         User.objects.create_superuser(
-            username='admin',
-            email='admin@maderas.cl',
-            password='admin123'
+            username=username,
+            email=email,
+            password=password
         )
-        print("✅ Superusuario creado: admin / admin123")
+        print(f"✅ Superusuario creado: {username}")
     else:
-        print("ℹ️  Superusuario 'admin' ya existe")
+        print(f"ℹ️  Superusuario '{username}' ya existe")
 
 def limpiar_base_de_datos():
     """Elimina todos los datos de los modelos para evitar duplicados en ejecuciones repetidas"""
@@ -163,9 +171,9 @@ def crear_datos_prueba(
     print(f"  - Tipos de Madera: {TipoMadera.objects.count()}")
     print(f"  - Clientes: {Cliente.objects.count()}")
     print(f"  - Cargas: {Carga.objects.count()}")
-    print("\n🔐 Credenciales de acceso:")
-    print("  Usuario: admin")
-    print("  Password: admin123")
+
+    username = os.getenv('DJANGO_SUPERUSER_USERNAME', 'admin')
+    print(f"\n🔐 Superusuario: {username}")
     print("\n🌐 URLs importantes:")
     print("  - API: http://localhost:8000/api/")
     print("  - Admin: http://localhost:8000/admin/")

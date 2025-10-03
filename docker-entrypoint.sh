@@ -30,8 +30,8 @@ python manage.py migrate --noinput
 echo "📦 Recolectando archivos estáticos..."
 python manage.py collectstatic --noinput --clear
 
-# Crear datos de prueba y superusuario si no existen (solo en desarrollo)
-if [ "$DEBUG" = "True" ] || [ "$DEBUG" = "true" ]; then
+# Crear datos de prueba y superusuario si la variable está habilitada
+if [ "$AUTO_POPULATE_DB" = "True" ] || [ "$AUTO_POPULATE_DB" = "true" ]; then
     echo "🌱 Poblando la base de datos con datos de prueba..."
     python create_test_data.py
 fi
