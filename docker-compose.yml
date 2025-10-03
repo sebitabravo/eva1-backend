@@ -87,6 +87,7 @@ services:
       start_period: 40s
     networks:
       - maderas_network
+      - dokploy
 
 volumes:
   postgres_data:
@@ -97,3 +98,5 @@ volumes:
 networks:
   maderas_network:
     driver: bridge
+  dokploy:
+    external: true
