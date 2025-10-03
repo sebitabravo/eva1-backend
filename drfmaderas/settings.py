@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Servir archivos estáticos en producción
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -82,12 +83,27 @@ WSGI_APPLICATION = 'drfmaderas.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Soporte para PostgreSQL (Docker) y SQLite (desarrollo local)
+DATABASE_ENGINE = config('DATABASE_ENGINE', default='django.db.backends.sqlite3')
+
+if DATABASE_ENGINE == 'django.db.backends.postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': DATABASE_ENGINE,
+            'NAME': config('DATABASE_NAME', default='maderas_db'),
+            'USER': config('DATABASE_USER', default='maderas_user'),
+            'PASSWORD': config('DATABASE_PASSWORD'),
+            'HOST': config('DATABASE_HOST', default='localhost'),
+            'PORT': config('DATABASE_PORT', default='5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -130,36 +146,92 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# WhiteNoise configuration para servir archivos estáticos eficientemente
+# CompressedStaticFilesStorage comprime archivos pero NO usa hashing en nombres
+# Esto permite que funcione tanto en desarrollo (DEBUG=True) como producción (DEBUG=False)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Límites de tamaño de requests para prevenir ataques DoS
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+
+
+# Cache Configuration
+# Usar cache local simple para endpoints de estadísticas
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'maderas-cache',
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
 
 # Django REST Framework Configuration
+
+# Renderizadores basados en DEBUG (deshabilitar BrowsableAPI en producción)
+if DEBUG:
+    DEFAULT_RENDERER_CLASSES = [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ]
+else:
+    DEFAULT_RENDERER_CLASSES = [
+        'rest_framework.renderers.JSONRenderer',  # Solo JSON en producción
+    ]
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # API pública para lectura
     ],
+    # Rate Limiting para API pública - Protección contra abuso
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+        'api.throttles.BurstRateThrottle',  # Protección contra ráfagas de requests
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '30/hour',      # 30 requests por hora para anónimos (MÁS restrictivo para API pública)
+        'user': '500/hour',     # 500 requests por hora para autenticados
+        'stats': '5/hour',      # 5 requests por hora para endpoints de estadísticas (MÁS restrictivo)
+        'write': '10/hour',     # 10 operaciones de escritura por hora (MÁS restrictivo)
+        'burst': '10/minute',   # Máximo 10 requests por minuto - previene ataques DoS
+    },
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 20,
+    'MAX_PAGINATION_SIZE': 100,  # Límite máximo de resultados por página
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ],
+    'DEFAULT_RENDERER_CLASSES': DEFAULT_RENDERER_CLASSES,
 }
 
 
 # CORS Configuration
+# Permitir que cualquier dominio haga peticiones a la API (ideal para APIs 100% públicas)
+CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default='http://localhost:3000,http://localhost:5173',
@@ -176,7 +248,11 @@ CSRF_TRUSTED_ORIGINS = config(
 
 
 # Security Settings (for production)
-if not DEBUG:
+# Solo activar HTTPS si la variable ENABLE_HTTPS=True (independiente de DEBUG)
+# Esto permite tener DEBUG=False en producción HTTP sin forzar HTTPS
+ENABLE_HTTPS = config('ENABLE_HTTPS', default=False, cast=bool)
+
+if ENABLE_HTTPS:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -186,3 +262,41 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+
+# Logging Configuration
+# Registra intentos de abuso y errores de throttling para monitoreo de seguridad
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,  # No deshabilitar loggers existentes
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'throttle_file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': '/app/logs/throttle.log',  # IMPORTANTE: Crear este directorio en Docker
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['throttle_file', 'console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
