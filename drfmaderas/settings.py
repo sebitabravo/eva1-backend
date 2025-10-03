@@ -248,12 +248,15 @@ CSRF_TRUSTED_ORIGINS = config(
 
 
 # Security Settings (for production)
-# Solo activar HTTPS si la variable ENABLE_HTTPS=True (independiente de DEBUG)
-# Esto permite tener DEBUG=False en producción HTTP sin forzar HTTPS
-ENABLE_HTTPS = config('ENABLE_HTTPS', default=False, cast=bool)
+# Configuración para proxy reverso (Traefik/Nginx)
+# Django confía en el header X-Forwarded-Proto del proxy para saber si la conexión original es HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-if ENABLE_HTTPS:
-    SECURE_SSL_REDIRECT = True
+# NO usar SECURE_SSL_REDIRECT cuando hay un proxy reverso manejando SSL
+# El proxy (Traefik) maneja la redirección HTTP->HTTPS
+
+# Security headers (siempre activos en producción cuando DEBUG=False)
+if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
